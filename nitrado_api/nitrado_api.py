@@ -1,9 +1,13 @@
 import asyncio
 import json
 import logging
+import os
 from ftplib import FTP
 
 import aiohttp
+
+# Global kill-switch: disable any FTP uploads by default to protect live.
+DISABLE_FTP_PUSH = os.environ.get("DISABLE_FTP_PUSH", "1").lower() in ("1", "true", "yes", "on")
 
 
 class NitradoAPI:
@@ -99,6 +103,9 @@ class NitradoAPI:
 
     async def upload_file(self, nitrado_id, filepath, target_path):
         """Upload a file via FTP to the server."""
+        if DISABLE_FTP_PUSH:
+            logging.warning(f"[DRY-RUN] FTP upload blocked by DISABLE_FTP_PUSH: {filepath} -> {target_path}")
+            return
         ftp_details = await self.get_ftp_credentials(nitrado_id)
         if ftp_details:
             with self.ftp_connect(ftp_details) as ftp:
